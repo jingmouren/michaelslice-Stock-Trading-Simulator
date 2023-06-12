@@ -6,12 +6,6 @@
 
 
 
-
-
-
-
-
-
 MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) {
 
     // Add stock button
@@ -60,25 +54,31 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) 
     wxFont add_withdraw_funds_text_font(wxFontInfo(10));
     add_withdraw_funds_text->SetFont(add_withdraw_funds_text_font);
 
-
-
-
     // Request Funds Button
 
     wxButton* request_funds_button = new wxButton(panel, wxID_ANY, "Request Funds", wxPoint(10, 358), wxSize(120, 25));
     request_funds_button->SetBackgroundColour(*wxLIGHT_GREY);
 
+    //request_funds_button->Bind(wxEVT_BUTTON, &MainFrame::OnRequestFundsButtonClicked, this);
 
 
 
 
 
-    // Input Frame for Adding Withdrawing Funds
+
+
+
+
+
+    // Input Frame for Adding Funds
 
     wxTextCtrl* adding_withdrawing_funds_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(160, 320), wxSize(70, 20));
 
 
-    //request_funds_button->Bind(wxEVT_BUTTON, &MainFrame::OnRequestFunds, this);
+
+
+
+
 
 
 
@@ -139,5 +139,19 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) 
 
 
 
+    wxStaticText* funds_available = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 280), wxSize(70, 20));
+
+
+    wxStaticText* profit_loss = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 180), wxSize(70, 20));
+
+    wxStaticText* portfolio_book_value = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 140), wxSize(70, 20));
+
+    wxStaticText* portfolio_balance = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 100), wxSize(70, 20));
+
+    
+    
+    
+
 }
 
+    
