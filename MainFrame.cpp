@@ -3,6 +3,7 @@
 #include <wx/wx.h>
 #include <wx/grid.h>
 #include <wx/listctrl.h>
+#include <wx/regex.h>
 
 
 // Code for Buttons and User Interface
@@ -153,23 +154,23 @@ void MainFrame::OnEnterPressed(wxCommandEvent& event)
     wxString input = adding_withdrawing_funds_frame->GetValue();
     adding_withdrawing_funds_frame->Clear();
 
-  
+
     // Check if user input is a Number
     double value;
-    if (!input.ToDouble(&value) && input !="-")
+    if (!input.ToDouble(&value) && input != "-")
     {
         wxMessageBox("Invalid input. Please Enter a Number.", "Error", wxOK | wxICON_ERROR);
         return;
     }
 
-    
+
     if (input == "-")
     {
         long bookval;
         long fundsAva;
         long mktVal;
-    
-    
+
+
         bookval = wxAtoi(portfolio_balance->GetLabel());
         fundsAva = wxAtoi(portfolio_book_value->GetLabel());
         mktVal = wxAtoi(funds_available->GetLabel());
@@ -182,7 +183,7 @@ void MainFrame::OnEnterPressed(wxCommandEvent& event)
         portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
         portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
         funds_available->SetLabel(wxString::Format("%ld", mktVal));
-    
+
     }
     else
     {
@@ -210,10 +211,44 @@ void MainFrame::OnEnterPressed(wxCommandEvent& event)
     event.Skip();
 }
 
-// Code for Adding and Selling Stocks
+// Code for Adding and Selling Tickers
 
 void MainFrame::AddingSellingTickers(wxCommandEvent& event)
 {
     wxString ticker = adding_ticker_frame->GetValue();
     adding_ticker_frame->Clear();
+
+    wxString tickerLettersOnly;
+    for (size_t i = 0; i < ticker.length(); ++i)
+    {
+        wxChar ch = ticker[i];
+        if (wxIsalpha(ch))
+        {
+            tickerLettersOnly += ch;
+        }
+    }
+
+    tickerLettersOnly.Truncate(4);
+
+    if (tickerLettersOnly.empty())
+    {
+        wxMessageBox("Invalid input! Please enter a valid ticker consisting of letters only.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxString tickerUppercase = tickerLettersOnly.MakeUpper();
+
+    int itemcount = basicListView->GetItemCount();
+    for (int i = 0; i < itemcount; ++i)
+    {
+        wxString existingTicker = basicListView->GetItemText(i, 1);
+        if (existingTicker == tickerUppercase)
+        {
+            wxMessageBox("Duplicate ticker! Ticker already exists.", "Error", wxOK | wxICON_ERROR);
+            return;
+        }
+    }
+
+    long index = basicListView->InsertItem(basicListView->GetItemCount(), "");
+    basicListView->SetItem(index, 1, tickerLettersOnly);
 }
