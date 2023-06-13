@@ -5,7 +5,7 @@
 #include <wx/listctrl.h>
 
 
-
+// Code for Buttons and User Interface
 
 MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) {
 
@@ -55,38 +55,26 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) 
     wxFont add_withdraw_funds_text_font(wxFontInfo(10));
     add_withdraw_funds_text->SetFont(add_withdraw_funds_text_font);
 
-
-
-
-
     // Request Funds Button
 
     wxButton* request_funds_button = new wxButton(panel, wxID_ANY, "Request Funds", wxPoint(10, 358), wxSize(120, 25));
     request_funds_button->SetBackgroundColour(*wxLIGHT_GREY);
-
-
-    request_funds_button->Bind(wxEVT_BUTTON, &MainFrame::OnButtonClicked, this);
-
     
     // Input Frame for Adding Funds
 
-    //wxTextCtrl* adding_withdrawing_funds_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(160, 320), wxSize(70, 20));
     adding_withdrawing_funds_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(160, 320), wxSize(70, 20), wxTE_PROCESS_ENTER);
 
-    adding_withdrawing_funds_frame->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnEnterPressed, this);
+    // Bind the Adding Withdrawing Funds Frame to the Enter Key 
 
-
-    // Bind the request funds button
-
-
-
-
-   
-
+    adding_withdrawing_funds_frame->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnEnterPressed, this);    
 
     // Input Frame for Adding a Ticker Symbol
 
-    wxTextCtrl* adding_ticker_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(380, 400), wxSize(100, 20));
+    adding_ticker_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(380, 400), wxSize(100, 20), wxTE_PROCESS_ENTER);
+
+    // Bind the Input Frame for Adding a Ticker Symbol 
+
+    adding_ticker_frame->Bind(wxEVT_TEXT_ENTER, &MainFrame::AddingSellingTickers, this);
 
     // Button for Updating Data Table
 
@@ -134,43 +122,98 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) 
     // Set the width of the third column
     basicListView->SetColumnWidth(8, 50);
 
+    // Text for Funds Available
 
-    wxStaticText* funds_available = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 280), wxSize(70, 20));
+    funds_available = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 280), wxSize(70, 20));
+
+    // Text For Profit Loss
 
     wxStaticText* profit_loss = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 180), wxSize(70, 20));
 
-    wxStaticText* portfolio_book_value = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 140), wxSize(70, 20));
+    // Text For Portfolio Book Value
 
-    wxStaticText* portfolio_balance = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 100), wxSize(70, 20));
+    portfolio_book_value = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 140), wxSize(70, 20));
+
+    // Text For Portfolio Balance
+
+    portfolio_balance = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 100), wxSize(70, 20));
 
 
-    HandleUIActions();
 }
 
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 {
+
 }
 
-    
-// Code for Adding or Withdrawing funds 
-
-void MainFrame::HandleUIActions()
-{
-    //String^ INPUT = adding_withdrawing_funds_frame->Text;
-}
-
-void MainFrame::OnButtonClicked(wxCommandEvent& evt)
-{
-    //wxString userInput = adding_withdrawing_funds_frame->GetValue();
-
-    //wxMessageBox(userInput, "ISAD");
-    std::cout << "AFASSD";
-}
-
+// Function to Add and Withdraw Funds
 
 void MainFrame::OnEnterPressed(wxCommandEvent& event)
 {
-    wxString  userInput = adding_withdrawing_funds_frame->GetValue();
-
+    wxString input = adding_withdrawing_funds_frame->GetValue();
     adding_withdrawing_funds_frame->Clear();
+
+  
+    // Check if user input is a Number
+    double value;
+    if (!input.ToDouble(&value) && input !="-")
+    {
+        wxMessageBox("Invalid input. Please Enter a Number.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    
+    if (input == "-")
+    {
+        long bookval;
+        long fundsAva;
+        long mktVal;
+    
+    
+        bookval = wxAtoi(portfolio_balance->GetLabel());
+        fundsAva = wxAtoi(portfolio_book_value->GetLabel());
+        mktVal = wxAtoi(funds_available->GetLabel());
+
+        bookval -= value;
+        fundsAva -= value;
+        mktVal -= value;
+
+        // Update the labels with the new values
+        portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
+        portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
+        funds_available->SetLabel(wxString::Format("%ld", mktVal));
+    
+    }
+    else
+    {
+
+        // Add funds to the three strings
+        long bookval;
+        long fundsAva;
+        long mktVal;
+
+        // Convert the strings to long integers
+        bookval = wxAtoi(portfolio_balance->GetLabel());
+        fundsAva = wxAtoi(portfolio_book_value->GetLabel());
+        mktVal = wxAtoi(funds_available->GetLabel());
+
+        // Add the value to all three strings
+        bookval += value;
+        fundsAva += value;
+        mktVal += value;
+
+        // Update the labels with the new values
+        portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
+        portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
+        funds_available->SetLabel(wxString::Format("%ld", mktVal));
+    }
+    event.Skip();
+}
+
+// Code for Adding and Selling Stocks
+
+void MainFrame::AddingSellingTickers(wxCommandEvent& event)
+{
+    wxString ticker = adding_ticker_frame->GetValue();
+    adding_ticker_frame->Clear();
 }
