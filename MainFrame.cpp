@@ -65,17 +65,21 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) 
     request_funds_button->SetBackgroundColour(*wxLIGHT_GREY);
 
 
+    request_funds_button->Bind(wxEVT_BUTTON, &MainFrame::OnButtonClicked, this);
 
+    
     // Input Frame for Adding Funds
 
     //wxTextCtrl* adding_withdrawing_funds_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(160, 320), wxSize(70, 20));
-    adding_withdrawing_funds_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(160, 320), wxSize(70, 20));
+    adding_withdrawing_funds_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(160, 320), wxSize(70, 20), wxTE_PROCESS_ENTER);
+
+    adding_withdrawing_funds_frame->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnEnterPressed, this);
+
 
     // Bind the request funds button
 
 
 
-    //  request_funds_button->Bind(wxEVT_BUTTON, &MainFrame::OnRequestFundsButtonClicked, this);
 
    
 
@@ -148,8 +152,25 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 }
 
     
-// Code for adding funds 
+// Code for Adding or Withdrawing funds 
+
 void MainFrame::HandleUIActions()
 {
+    //String^ INPUT = adding_withdrawing_funds_frame->Text;
+}
 
+void MainFrame::OnButtonClicked(wxCommandEvent& evt)
+{
+    //wxString userInput = adding_withdrawing_funds_frame->GetValue();
+
+    //wxMessageBox(userInput, "ISAD");
+    std::cout << "AFASSD";
+}
+
+
+void MainFrame::OnEnterPressed(wxCommandEvent& event)
+{
+    wxString  userInput = adding_withdrawing_funds_frame->GetValue();
+
+    adding_withdrawing_funds_frame->Clear();
 }
