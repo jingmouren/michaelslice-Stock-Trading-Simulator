@@ -4,12 +4,15 @@
 #include <wx/grid.h>
 #include <wx/listctrl.h>
 #include <wx/regex.h>
+#include <fstream>
+#include <vector>
+#include <iostream>
 
 
-// Code for Buttons and User Interface
 
-MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) {
-
+MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
+{
+  
     // Add stock button
     wxPanel* panel = new wxPanel(this);
     wxButton* add_stock_button = new wxButton(panel, wxID_ANY, "Add Ticker", wxPoint(520, 400), wxSize(120, 25));
@@ -139,7 +142,26 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) 
 
     portfolio_balance = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 100), wxSize(70, 20));
 
+    // Load Previus Inputed Ticker Data from data.txt
+    
+    std::ifstream file("data.txt");
+    if (file.is_open()) {
+        std::string ticker;
+        while (std::getline(file, ticker)) {
+            wxString tickerWx(ticker);
+            long index = basicListView->InsertItem(basicListView->GetItemCount(), "");
+            basicListView->SetItem(index, 1, tickerWx);
+        }
+        file.close();
+    }
+    else 
+    {
+        wxMessageBox("Unable to open data file.", "Error", wxOK | wxICON_ERROR);
+    }
 
+    // Retrieve Saved Funds and Display 
+
+    LoadDataFromFile();
 }
 
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
@@ -154,64 +176,57 @@ void MainFrame::OnEnterPressed(wxCommandEvent& event)
     wxString input = adding_withdrawing_funds_frame->GetValue();
     adding_withdrawing_funds_frame->Clear();
 
-
-    // Check if user input is a Number
+    // Check if user input is a number
     double value;
     if (!input.ToDouble(&value) && input != "-")
     {
-        wxMessageBox("Invalid input. Please Enter a Number.", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox("Invalid input. Please enter a number.", "Error", wxOK | wxICON_ERROR);
         return;
     }
 
+    // Retrieve previous data from labels and convert to long integers
+    long bookval = wxAtoi(portfolio_balance->GetLabel());
+    long fundsAva = wxAtoi(portfolio_book_value->GetLabel());
+    long mktVal = wxAtoi(funds_available->GetLabel());
 
     if (input == "-")
     {
-        long bookval;
-        long fundsAva;
-        long mktVal;
-
-
-        bookval = wxAtoi(portfolio_balance->GetLabel());
-        fundsAva = wxAtoi(portfolio_book_value->GetLabel());
-        mktVal = wxAtoi(funds_available->GetLabel());
-
+        // Subtract the value from all three variables
         bookval -= value;
         fundsAva -= value;
         mktVal -= value;
-
-        // Update the labels with the new values
-        portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
-        portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
-        funds_available->SetLabel(wxString::Format("%ld", mktVal));
-
     }
     else
     {
-
-        // Add funds to the three strings
-        long bookval;
-        long fundsAva;
-        long mktVal;
-
-        // Convert the strings to long integers
-        bookval = wxAtoi(portfolio_balance->GetLabel());
-        fundsAva = wxAtoi(portfolio_book_value->GetLabel());
-        mktVal = wxAtoi(funds_available->GetLabel());
-
-        // Add the value to all three strings
+        // Add the value to all three variables
         bookval += value;
         fundsAva += value;
         mktVal += value;
-
-        // Update the labels with the new values
-        portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
-        portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
-        funds_available->SetLabel(wxString::Format("%ld", mktVal));
     }
+
+    // Update the labels with the new values
+    portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
+    portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
+    funds_available->SetLabel(wxString::Format("%ld", mktVal));
+
+    // Save the variables to the data file
+    std::ofstream file("savedata.txt");
+    if (file.is_open())
+    {
+        file << bookval << '\n';
+        file << fundsAva << '\n';
+        file << mktVal << '\n';
+        file.close();
+    }
+    else
+    {
+        wxMessageBox("Unable to save data to file.", "Error", wxOK | wxICON_ERROR);
+    }
+
     event.Skip();
 }
 
-// Code for Adding and Selling Tickers
+// Code and Logic for Adding and Selling Tickers
 
 void MainFrame::AddingSellingTickers(wxCommandEvent& event)
 {
@@ -251,4 +266,56 @@ void MainFrame::AddingSellingTickers(wxCommandEvent& event)
 
     long index = basicListView->InsertItem(basicListView->GetItemCount(), "");
     basicListView->SetItem(index, 1, tickerLettersOnly);
+
+    // Save The User Input When Tickers Are Added 
+
+    std::ofstream file("data.txt", std::ios::app);
+    if (file.is_open())
+    {
+        file << tickerUppercase << '\n';
+        file.close();
+    }
+    else
+    {
+        wxMessageBox("Unable to save ticker to file.", "Error", wxOK | wxICON_ERROR);
+    }
+}
+
+// Retrieve Input for Funds from savedata.txt
+
+void MainFrame::LoadDataFromFile()
+{
+    std::ifstream file("savedata.txt");
+    if (file.is_open())
+    {
+        std::string line;
+        int lineNumber = 0;
+
+        while (std::getline(file, line))
+        {
+            if (lineNumber == 0)
+            {
+                long bookval = std::stol(line);
+                portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
+            }
+            else if (lineNumber == 1)
+            {
+                long fundsAva = std::stol(line);
+                portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
+            }
+            else if (lineNumber == 2)
+            {
+                long mktVal = std::stol(line);
+                funds_available->SetLabel(wxString::Format("%ld", mktVal));
+            }
+
+            lineNumber++;
+        }
+
+        file.close();
+    }
+    else
+    {
+        wxMessageBox("Unable to load data from file.", "Error", wxOK | wxICON_ERROR);
+    }
 }
