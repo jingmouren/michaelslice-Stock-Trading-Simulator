@@ -3,7 +3,6 @@
 #include <wx/listctrl.h>
 
 
-
 class MainFrame : public wxFrame
 {
  public:
@@ -11,7 +10,13 @@ class MainFrame : public wxFrame
      MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size);        
 
  void OnEnterPressed(wxCommandEvent& event);
+
  void AddingSellingTickers(wxCommandEvent& event);
+
+ void LoadDataFromFile();
+
+private:
+    std::vector<std::string> tickers;
      
  private:    
      wxTextCtrl* adding_withdrawing_funds_frame;
@@ -29,6 +34,6 @@ class MainFrame : public wxFrame
       wxStaticText* profit_loss;
       wxStaticText* portfolio_book_value;
       wxStaticText* portfolio_balance;
+
+
 };
-
-
