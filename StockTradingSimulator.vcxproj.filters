@@ -27,6 +27,12 @@
     <Text Include="data.txt">
       <Filter>Source Files</Filter>
     </Text>
+    <Text Include="savedata.txt">
+      <Filter>Source Files</Filter>
+    </Text>
+    <Text Include="stockprices.txt">
+      <Filter>Source Files</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainFrame.h">

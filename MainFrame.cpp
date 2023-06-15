@@ -7,19 +7,20 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
-
+#include <cstdlib>
+#include <wx/spinctrl.h>
+#include <sstream>
 
 
 MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 {
-  
     // Add stock button
     wxPanel* panel = new wxPanel(this);
     wxButton* add_stock_button = new wxButton(panel, wxID_ANY, "Add Ticker", wxPoint(520, 400), wxSize(120, 25));
     add_stock_button->SetBackgroundColour(*wxLIGHT_GREY);
 
     // Text for Watchlist
-    wxStaticText* watchlist_text = new wxStaticText(panel, wxID_ANY, "Watchlist", wxPoint(500, 50));
+    wxStaticText* watchlist_text = new wxStaticText(panel, wxID_ANY, "Watchlist", wxPoint(430, 50));
     wxFont watchlist_text_font(wxFontInfo(18).Bold());
     watchlist_text->SetFont(watchlist_text_font);
 
@@ -63,14 +64,14 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 
     wxButton* request_funds_button = new wxButton(panel, wxID_ANY, "Request Funds", wxPoint(10, 358), wxSize(120, 25));
     request_funds_button->SetBackgroundColour(*wxLIGHT_GREY);
-    
+
     // Input Frame for Adding Funds
 
     adding_withdrawing_funds_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(160, 320), wxSize(70, 20), wxTE_PROCESS_ENTER);
 
     // Bind the Adding Withdrawing Funds Frame to the Enter Key 
 
-    adding_withdrawing_funds_frame->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnEnterPressed, this);    
+    adding_withdrawing_funds_frame->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnEnterPressed, this);
 
     // Input Frame for Adding a Ticker Symbol
 
@@ -82,16 +83,16 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 
     // Button for Updating Data Table
 
-    wxButton* update_button = new wxButton(panel, wxID_ANY, "Update", wxPoint(780, 400), wxSize(100, 25));
+    wxButton* update_button = new wxButton(panel, wxID_ANY, "Update", wxPoint(720, 400), wxSize(100, 25));
     update_button->SetBackgroundColour(*wxLIGHT_GREY);
 
     // Scroll Bar for Data Table
 
-    wxScrolledWindow* scrolledWindow = new wxScrolledWindow(panel, wxID_ANY, wxPoint(250, 80), wxSize(630, 300));
+    wxScrolledWindow* scrolledWindow = new wxScrolledWindow(panel, wxID_ANY, wxPoint(250, 80), wxSize(450, 300));
     scrolledWindow->SetScrollRate(10, 10); // Set the scrolling increment
 
     // Data Table for Ticker Data
-    basicListView = new wxListView(scrolledWindow, wxID_ANY, wxPoint(0, 0), wxSize(630, 300));
+    basicListView = new wxListView(scrolledWindow, wxID_ANY, wxPoint(0, 0), wxSize(450, 300));
 
     // Enable vertical scrolling
     scrolledWindow->SetScrollbars(0, 10, 0, 100);
@@ -103,9 +104,7 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
     basicListView->AppendColumn("Avg. Price", wxLIST_FORMAT_LEFT, 600);
     basicListView->AppendColumn("Shares Held", wxLIST_FORMAT_LEFT, 600);
     basicListView->AppendColumn("Avg. P/L", wxLIST_FORMAT_LEFT, 600);
-    basicListView->AppendColumn("Quantity", wxLIST_FORMAT_LEFT, 600);
-    basicListView->AppendColumn("Buy", wxLIST_FORMAT_LEFT, 600);
-    basicListView->AppendColumn("Sell", wxLIST_FORMAT_LEFT, 600);
+
 
     // Set the width of the first column
     basicListView->SetColumnWidth(0, 40);
@@ -119,12 +118,36 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
     basicListView->SetColumnWidth(4, 80);
     // Set the width of the third column
     basicListView->SetColumnWidth(5, 80);
-    // Set the width of the third column
-    basicListView->SetColumnWidth(6, 80);
-    // Set the width of the third column
-    basicListView->SetColumnWidth(7, 50);
-    // Set the width of the third column
-    basicListView->SetColumnWidth(8, 50);
+
+    // Text for buying more shares
+
+    wxStaticText* stock_quantity_text = new wxStaticText(panel, wxID_ANY, "Ticker", wxPoint(750, 160));
+
+    // Stock Frame
+
+    wxTextCtrl* stock_frame = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(730, 185), wxSize(80, 20));
+
+    // Text for quantity 
+
+    wxStaticText* quantity_text = new wxStaticText(panel, wxID_ANY, "Quantity", wxPoint(750, 210));
+
+    // Spin ctrl
+
+    wxSpinCtrl* stock_quantity = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(730, 235), wxSize(80, 20));
+
+    // Text for Buy Text
+    wxStaticText* buy_text = new wxStaticText(panel, wxID_ANY, "Buy", wxPoint(760, 260));
+
+    // Text for Sell Text
+
+    wxStaticText* sell_text = new wxStaticText(panel, wxID_ANY, "Sell", wxPoint(760, 305));
+
+    // Create Buy Button
+    wxButton* buy_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 280), wxSize(80, 20));
+
+
+    // Create Sell Button
+    wxButton* sell_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 320), wxSize(80, 20));
 
     // Text for Funds Available
 
@@ -143,7 +166,7 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
     portfolio_balance = new wxStaticText(panel, wxID_ANY, "0", wxPoint(160, 100), wxSize(70, 20));
 
     // Load Previus Inputed Ticker Data from data.txt
-    
+
     std::ifstream file("data.txt");
     if (file.is_open()) {
         std::string ticker;
@@ -151,10 +174,11 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
             wxString tickerWx(ticker);
             long index = basicListView->InsertItem(basicListView->GetItemCount(), "");
             basicListView->SetItem(index, 1, tickerWx);
+            basicListView->SetItem(index, 4, "1"); // Set "Shares Held" column to 1 for each stock
         }
         file.close();
     }
-    else 
+    else
     {
         wxMessageBox("Unable to open data file.", "Error", wxOK | wxICON_ERROR);
     }
@@ -266,20 +290,91 @@ void MainFrame::AddingSellingTickers(wxCommandEvent& event)
 
     long index = basicListView->InsertItem(basicListView->GetItemCount(), "");
     basicListView->SetItem(index, 1, tickerLettersOnly);
+    basicListView->SetItem(index, 4, "1"); // Set "1" in the "Shares Held" column
 
-    // Save The User Input When Tickers Are Added 
+    // Check if the stock price is already saved
+    double price = 0.0;
+    bool priceFound = false;
 
-    std::ofstream file("data.txt", std::ios::app);
+    std::ifstream file("data.txt");
     if (file.is_open())
     {
-        file << tickerUppercase << '\n';
+        std::string line;
+        while (std::getline(file, line))
+        {
+            std::istringstream iss(line);
+            std::string tickerSaved;
+            std::string priceSavedStr;
+            if (iss >> tickerSaved >> priceSavedStr)
+            {
+                // Convert priceSavedStr to double
+                double priceSaved = std::stod(priceSavedStr);
+
+                if (tickerSaved == tickerUppercase)
+                {
+                    price = priceSaved;
+                    priceFound = true;
+                    break;
+                }
+            }
+        }
         file.close();
+    
     }
     else
     {
-        wxMessageBox("Unable to save ticker to file.", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox("Unable to read stock prices from file.", "Error", wxOK | wxICON_ERROR);
+    }
+
+    // If the price is not found, retrieve it using the Python script
+    if (!priceFound)
+    {
+        // Call the Python script to retrieve stock price
+        wxString pythonCommand = "python -c \"import yfinance; ticker = '" + tickerUppercase + "'; data = yfinance.Ticker(ticker).history(period='1d'); price = data['Close'].values[-1]; print(price)\"";
+
+        wxArrayString output;
+        wxExecute(pythonCommand, output);
+
+        // Check if the Python command was successful and capture the result
+        wxString result;
+        if (!output.IsEmpty())
+        {
+            result = output[0]; // Assuming the output is stored in the first element of the array
+            price = wxAtof(result);
+
+            // Save the stock price to the file
+            std::ofstream saveFile("data.txt", std::ios::app);
+            if (saveFile.is_open())
+            {
+                saveFile << tickerUppercase << ' ' << price << '\n';
+                saveFile.close();
+            }
+            else
+            {
+                wxMessageBox("Unable to save stock price to file.", "Error", wxOK | wxICON_ERROR);
+            }
+        }
+
+        // Round the result to two decimal places
+        wxString formattedPrice = wxString::Format("%.2f", price);
+
+        // Update the stock price in the ListView
+        basicListView->SetItem(index, 3, formattedPrice);
+
+        // Save The User Input When Tickers Are Added
+        std::ofstream file("data.txt", std::ios::app);
+        if (file.is_open())
+        {
+            file << tickerUppercase << ' ' << formattedPrice << '\n';
+            file.close();
+        }
+        else
+        {
+            wxMessageBox("Unable to save ticker to file.", "Error", wxOK | wxICON_ERROR);
+        }
     }
 }
+
 
 // Retrieve Input for Funds from savedata.txt
 
