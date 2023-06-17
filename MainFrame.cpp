@@ -10,8 +10,9 @@
 #include <cstdlib>
 #include <wx/spinctrl.h>
 #include <sstream>
+#include <iomanip>
 
-
+/*
 
 MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 {
@@ -87,6 +88,8 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
     wxButton* update_button = new wxButton(panel, wxID_ANY, "Update", wxPoint(720, 400), wxSize(100, 25));
     update_button->SetBackgroundColour(*wxLIGHT_GREY);
 
+    update_button->Bind(wxEVT_BUTTON, &MainFrame::OnUpdateButton, this);
+
     // Scroll Bar for Data Table
 
     wxScrolledWindow* scrolledWindow = new wxScrolledWindow(panel, wxID_ANY, wxPoint(250, 80), wxSize(450, 300));
@@ -146,11 +149,18 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 
     // Button for Buying Shares
 
-    wxButton* buy_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 280), wxSize(80, 20));
+    buy_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 280), wxSize(80, 20));
+
+    // Bind the Buy Button 
+
+    buy_button->Bind(wxEVT_BUTTON, &MainFrame::OnBuyButton, this);
 
     // Button for Selling Shares
 
-    wxButton* sell_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 320), wxSize(80, 20));
+    sell_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 320), wxSize(80, 20));
+
+    // Bind the sell button event to the sell function
+    sell_button->Bind(wxEVT_BUTTON, &MainFrame::OnSellButton, this);
 
     // Text for Funds Available
 
@@ -214,9 +224,9 @@ void MainFrame::OnEnterPressed(wxCommandEvent& event)
     }
 
     // Retrieve Previous Data From Labels and Convert to Long Integers
-    long bookval = wxAtoi(portfolio_balance->GetLabel());
-    long fundsAva = wxAtoi(portfolio_book_value->GetLabel());
-    long mktVal = wxAtoi(funds_available->GetLabel());
+    double bookval = wxAtoi(portfolio_balance->GetLabel());
+    double fundsAva = wxAtoi(portfolio_book_value->GetLabel());
+    double mktVal = wxAtoi(funds_available->GetLabel());
 
     if (input == "-")
     {
@@ -234,17 +244,17 @@ void MainFrame::OnEnterPressed(wxCommandEvent& event)
     }
 
     // Update the Labels With the New Values
-    portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
-    portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
-    funds_available->SetLabel(wxString::Format("%ld", mktVal));
+    portfolio_balance->SetLabel(wxString::Format("%.2f", bookval));
+    portfolio_book_value->SetLabel(wxString::Format("%.2f", fundsAva));
+    funds_available->SetLabel(wxString::Format("%.2f", mktVal));
 
     // Save the Variables to the Data File
     std::ofstream file("savedata.txt");
     if (file.is_open())
     {
-        file << bookval << '\n';
-        file << fundsAva << '\n';
-        file << mktVal << '\n';
+        file << std::fixed << std::setprecision(2) << bookval << '\n';
+        file << std::fixed << std::setprecision(2) << fundsAva << '\n';
+        file << std::fixed << std::setprecision(2) << mktVal << '\n';
         file.close();
     }
     else
@@ -295,6 +305,10 @@ void MainFrame::AddingSellingTickers(wxCommandEvent& event)
 
     long index = basicListView->InsertItem(basicListView->GetItemCount(), "");
     basicListView->SetItem(index, 1, tickerLettersOnly);
+    
+    
+  
+    
     basicListView->SetItem(index, 4, "1"); // Set "1" in the "Shares Held" column
 
     // Check if the Stock Price is Already Saved
@@ -346,20 +360,55 @@ void MainFrame::AddingSellingTickers(wxCommandEvent& event)
         {
             result = output[0]; // Assuming the output is stored in the first element of the array
             price = wxAtof(result);
-            
-            long mktVal = wxAtoi(funds_available->GetLabel());
-            mktVal -= static_cast<long>(price); // Subtract the price from funds
-            
-            
-           
-            funds_available->SetLabel(wxString::Format("%ld", mktVal)); // Update the label
+
+
+
+            double mktVal = wxAtof(funds_available->GetLabel());
+            mktVal -= price;
+
+            funds_available->SetLabel(wxString::Format("%.2f", mktVal)); // Update the label
+
+            std::ifstream inputFile("savedata.txt");
+            std::ofstream outputFile("temp.txt");
+
+            if (inputFile.is_open() && outputFile.is_open())
+            {
+                std::string line;
+                int lineNumber = 0;
+
+                while (std::getline(inputFile, line))
+                {
+                    if (lineNumber == 2)
+                    {
+                        // Replace the old funds available value with the new one
+                        outputFile << std::fixed << std::setprecision(2) << mktVal << '\n';
+                    }
+                    else
+                    {
+                        outputFile << line << '\n';
+                    }
+
+                    lineNumber++;
+                }
+
+                inputFile.close();
+                outputFile.close();
+
+                // Replace the original file with the updated file
+                std::remove("savedata.txt");
+                std::rename("temp.txt", "savedata.txt");
+            }
+            else
+            {
+                wxMessageBox("Unable to update funds available in the file.", "Error", wxOK | wxICON_ERROR);
+            }
 
 
             // Save the stock price to the file
             std::ofstream saveFile("data.txt", std::ios::app);
             if (saveFile.is_open())
             {
-                saveFile << tickerUppercase  << '\n';
+                saveFile << tickerUppercase << '\n';
                 saveFile.close();
             }
             else
@@ -373,11 +422,7 @@ void MainFrame::AddingSellingTickers(wxCommandEvent& event)
 
         // Update the stock price in the ListView
         basicListView->SetItem(index, 3, formattedPrice);
-
-
-
-
-
+        basicListView->SetItem(index, 2, wxString::Format("%.2f", price));
 
         // Save The User Input When Tickers Are Added
         std::ofstream file("stockprices.txt", std::ios::app);
@@ -407,18 +452,18 @@ void MainFrame::LoadDataFromFile()
         {
             if (lineNumber == 0)
             {
-                long bookval = std::stol(line);
-                portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
+                double bookval = std::stol(line);
+                portfolio_balance->SetLabel(wxString::Format("%.2f", bookval));
             }
             else if (lineNumber == 1)
             {
-                long fundsAva = std::stol(line);
-                portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
+                double fundsAva = std::stol(line);
+                portfolio_book_value->SetLabel(wxString::Format("%.2f", fundsAva));
             }
             else if (lineNumber == 2)
             {
-                long mktVal = std::stol(line);
-                funds_available->SetLabel(wxString::Format("%ld", mktVal));
+                double  mktVal = std::stol(line);
+                funds_available->SetLabel(wxString::Format("%.2f", mktVal));
             }
 
             lineNumber++;
@@ -455,6 +500,75 @@ void MainFrame::LoadStockPricesFromFile()
     }
 }
 
+// Code for Updating the Market Value Column in the Data table
+
+void MainFrame::OnUpdateButton(wxCommandEvent& event)
+{
+    // Update the market value column with the most recent stock prices
+    int itemCount = basicListView->GetItemCount();
+    for (int i = 0; i < itemCount; ++i)
+    {
+        wxString ticker = basicListView->GetItemText(i, 1);
+        wxString priceStr;
+
+        // Check if the stock price is already saved
+        bool priceFound = false;
+        std::ifstream priceFile("data.txt");
+        if (priceFile.is_open())
+        {
+            std::string line;
+            while (std::getline(priceFile, line))
+            {
+                std::istringstream iss(line);
+                std::string tickerSaved;
+                std::string priceSavedStr;
+                if (iss >> tickerSaved >> priceSavedStr)
+                {
+                    if (tickerSaved == ticker)
+                    {
+                        priceStr = priceSavedStr;
+                        priceFound = true;
+                        break;
+                    }
+                }
+            }
+            priceFile.close();
+        }
+        else
+        {
+            wxMessageBox("Unable to read stock prices from file.", "Error", wxOK | wxICON_ERROR);
+        }
+
+        // If the price is not found, retrieve it using the Python script
+        if (!priceFound)
+        {
+            // Call the Python script to retrieve stock price
+            wxString pythonCommand = "python -c \"import yfinance; ticker = '" + ticker
+                + "'; data = yfinance.Ticker(ticker).history(period='1d');"
+                " price = data['Close'].values[-1]; print(price)\"";
+
+            wxArrayString output;
+            wxExecute(pythonCommand, output);
+
+            // Check if the Python command was successful and capture the result
+            wxString result;
+            if (!output.IsEmpty())
+            {
+                result = output[0]; // Assuming the output is stored in the first element of the array
+                double price = wxAtof(result);
+
+                // Update the stock price in the ListView
+              
+                basicListView->SetItem(i, 2, wxString::Format("%.2f", price));
+
+
+                
+            }
+        }
+    }
+
+    event.Skip();
+}
 
 
 
@@ -463,7 +577,71 @@ void MainFrame::LoadStockPricesFromFile()
 
 
 
-/*
+
+
+
+
+
+
+
+
+
+void MainFrame::OnBuyButton(wxCommandEvent& event)
+{
+    wxString stockName = stock_frame->GetValue(); // Assuming stock_frame is the stock input frame
+    int quantity = stock_quantity->GetValue();    // Assuming stock_quantity is the spin control frame
+
+    // Rest of your code...
+
+    // Check if the stock name and quantity are valid
+    if (stockName.IsEmpty() || quantity <= 0)
+    {
+        wxMessageBox("Please enter a valid stock name and quantity.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    // Rest of your code...
+
+    // Clear the stock input frame and spin control frame
+    stock_frame->Clear();
+    stock_quantity->SetValue(0);
+
+    event.Skip();
+}
+
+
+
+void MainFrame::OnSellButton(wxCommandEvent& event)
+{
+    wxString stockName = stock_frame->GetValue();
+    int quantity = stock_quantity->GetValue();
+
+    // Find the stock in the data table
+    int itemCount = basicListView->GetItemCount();
+    for (int i = 0; i < itemCount; ++i)
+    {
+        wxString ticker = basicListView->GetItemText(i, 1);
+        if (ticker == stockName)
+        {
+            // Update the shares held column by subtracting the sold quantity
+            int sharesHeld = wxAtoi(basicListView->GetItemText(i, 4));
+            int newSharesHeld = sharesHeld - quantity;
+            if (newSharesHeld >= 0)
+            {
+                basicListView->SetItem(i, 4, wxString::Format("%d", newSharesHeld));
+            }
+            else
+            {
+                wxMessageBox("Not enough shares held for selling.", "Error", wxOK | wxICON_ERROR);
+            }
+            break;
+        }
+    }
+
+    event.Skip();
+}
+*/
+
 MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 {
     // Add stock button
@@ -538,6 +716,8 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
     wxButton* update_button = new wxButton(panel, wxID_ANY, "Update", wxPoint(720, 400), wxSize(100, 25));
     update_button->SetBackgroundColour(*wxLIGHT_GREY);
 
+    update_button->Bind(wxEVT_BUTTON, &MainFrame::OnUpdateButton, this);
+
     // Scroll Bar for Data Table
 
     wxScrolledWindow* scrolledWindow = new wxScrolledWindow(panel, wxID_ANY, wxPoint(250, 80), wxSize(450, 300));
@@ -585,7 +765,12 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 
     // Spin Ctrl for Buying / Selling Shares
 
-    wxSpinCtrl* stock_quantity = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(730, 235), wxSize(80, 20));
+    stock_quantity = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(730, 235), wxSize(80, 20));
+
+
+
+
+
 
     // Text for Buy Button
 
@@ -597,11 +782,26 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 
     // Button for Buying Shares
 
-    wxButton* buy_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 280), wxSize(80, 20));
+    buy_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 280), wxSize(80, 20));
+
+    // Bind the Buy Button 
+
+   
+
+
+
+
+
+
+
+
 
     // Button for Selling Shares
 
-    wxButton* sell_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 320), wxSize(80, 20));
+    sell_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 320), wxSize(80, 20));
+
+    // Bind the sell button event to the sell function
+  
 
     // Text for Funds Available
 
@@ -641,6 +841,7 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 
     LoadDataFromFile();
     LoadStockPricesFromFile();
+    
 }
 
 
@@ -665,9 +866,9 @@ void MainFrame::OnEnterPressed(wxCommandEvent& event)
     }
 
     // Retrieve Previous Data From Labels and Convert to Long Integers
-    long bookval = wxAtoi(portfolio_balance->GetLabel());
-    long fundsAva = wxAtoi(portfolio_book_value->GetLabel());
-    long mktVal = wxAtoi(funds_available->GetLabel());
+    double bookval = wxAtoi(portfolio_balance->GetLabel());
+    double fundsAva = wxAtoi(portfolio_book_value->GetLabel());
+    double mktVal = wxAtoi(funds_available->GetLabel());
 
     if (input == "-")
     {
@@ -685,17 +886,17 @@ void MainFrame::OnEnterPressed(wxCommandEvent& event)
     }
 
     // Update the Labels With the New Values
-    portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
-    portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
-    funds_available->SetLabel(wxString::Format("%ld", mktVal));
+    portfolio_balance->SetLabel(wxString::Format("%.2f", bookval));
+    portfolio_book_value->SetLabel(wxString::Format("%.2f", fundsAva));
+    funds_available->SetLabel(wxString::Format("%.2f", mktVal));
 
     // Save the Variables to the Data File
     std::ofstream file("savedata.txt");
     if (file.is_open())
     {
-        file << bookval << '\n';
-        file << fundsAva << '\n';
-        file << mktVal << '\n';
+        file << std::fixed << std::setprecision(2) << bookval << '\n';
+        file << std::fixed << std::setprecision(2) << fundsAva << '\n';
+        file << std::fixed << std::setprecision(2) << mktVal << '\n';
         file.close();
     }
     else
@@ -746,6 +947,10 @@ void MainFrame::AddingSellingTickers(wxCommandEvent& event)
 
     long index = basicListView->InsertItem(basicListView->GetItemCount(), "");
     basicListView->SetItem(index, 1, tickerLettersOnly);
+
+
+
+
     basicListView->SetItem(index, 4, "1"); // Set "1" in the "Shares Held" column
 
     // Check if the Stock Price is Already Saved
@@ -798,6 +1003,49 @@ void MainFrame::AddingSellingTickers(wxCommandEvent& event)
             result = output[0]; // Assuming the output is stored in the first element of the array
             price = wxAtof(result);
 
+
+
+            double mktVal = wxAtof(funds_available->GetLabel());
+            mktVal -= price;
+
+            funds_available->SetLabel(wxString::Format("%.2f", mktVal)); // Update the label
+
+            std::ifstream inputFile("savedata.txt");
+            std::ofstream outputFile("temp.txt");
+
+            if (inputFile.is_open() && outputFile.is_open())
+            {
+                std::string line;
+                int lineNumber = 0;
+
+                while (std::getline(inputFile, line))
+                {
+                    if (lineNumber == 2)
+                    {
+                        // Replace the old funds available value with the new one
+                        outputFile << std::fixed << std::setprecision(2) << mktVal << '\n';
+                    }
+                    else
+                    {
+                        outputFile << line << '\n';
+                    }
+
+                    lineNumber++;
+                }
+
+                inputFile.close();
+                outputFile.close();
+
+                // Replace the original file with the updated file
+                std::remove("savedata.txt");
+                std::rename("temp.txt", "savedata.txt");
+            }
+            else
+            {
+                wxMessageBox("Unable to update funds available in the file.", "Error", wxOK | wxICON_ERROR);
+            }
+
+
             // Save the stock price to the file
             std::ofstream saveFile("data.txt", std::ios::app);
             if (saveFile.is_open())
@@ -810,50 +1058,26 @@ void MainFrame::AddingSellingTickers(wxCommandEvent& event)
                 wxMessageBox("Unable to save stock price to file.", "Error", wxOK | wxICON_ERROR);
             }
         }
-        
+
         // Round the result to two decimal places
         wxString formattedPrice = wxString::Format("%.2f", price);
 
         // Update the stock price in the ListView
         basicListView->SetItem(index, 3, formattedPrice);
-
-
-        long fundsAva = wxAtoi(portfolio_book_value->GetLabel());
-        fundsAva  -=price;
-        portfolio_book_value->SetLabel(wxString::Format("%1d", fundsAva));
-
-        std::ofstream file("savedata.txt");
-        if (file.is_open())
-        {
-            long bookval = wxAtoi(portfolio_balance->GetLabel());
-            long mktVal = wxAtoi(funds_available->GetLabel());
-
-            file << bookval << '\n';
-            file << fundsAva << '\n';
-            file << mktVal << '\n';
-            file.close();
-        }
-        else
-        {
-            wxMessageBox("Unable to save data to file.", "Error", wxOK | wxICON_ERROR);
-
-        }
-
-
+        basicListView->SetItem(index, 2, wxString::Format("%.2f", price));
 
         // Save The User Input When Tickers Are Added
-        std::ofstream priceFile("stockprices.txt", std::ios::app);
-        if (priceFile.is_open())
+        std::ofstream file("stockprices.txt", std::ios::app);
+        if (file.is_open())
         {
-            priceFile << formattedPrice << '\n';
-            priceFile.close();
+            file << formattedPrice << '\n';
+            file.close();
         }
         else
         {
             wxMessageBox("Unable to save ticker to file.", "Error", wxOK | wxICON_ERROR);
         }
     }
-    event.Skip();
 }
 
 // Retrieve Input for Funds from savedata.txt this is the money code
@@ -870,18 +1094,18 @@ void MainFrame::LoadDataFromFile()
         {
             if (lineNumber == 0)
             {
-                long bookval = std::stol(line);
-                portfolio_balance->SetLabel(wxString::Format("%ld", bookval));
+                double bookval = std::stol(line);
+                portfolio_balance->SetLabel(wxString::Format("%.2f", bookval));
             }
             else if (lineNumber == 1)
             {
-                long fundsAva = std::stol(line);
-                portfolio_book_value->SetLabel(wxString::Format("%ld", fundsAva));
+                double fundsAva = std::stol(line);
+                portfolio_book_value->SetLabel(wxString::Format("%.2f", fundsAva));
             }
             else if (lineNumber == 2)
             {
-                long mktVal = std::stol(line);
-                funds_available->SetLabel(wxString::Format("%ld", mktVal));
+                double  mktVal = std::stol(line);
+                funds_available->SetLabel(wxString::Format("%.2f", mktVal));
             }
 
             lineNumber++;
@@ -917,4 +1141,115 @@ void MainFrame::LoadStockPricesFromFile()
         wxMessageBox("Unable to open stockprices.txt file.", "Error", wxOK | wxICON_ERROR);
     }
 }
-*/
+
+// Code for Updating the Market Value Column in the Data table
+
+void MainFrame::OnUpdateButton(wxCommandEvent& event)
+{
+    // Update the market value column with the most recent stock prices
+    int itemCount = basicListView->GetItemCount();
+    for (int i = 0; i < itemCount; ++i)
+    {
+        wxString ticker = basicListView->GetItemText(i, 1);
+        wxString priceStr;
+
+        // Check if the stock price is already saved
+        bool priceFound = false;
+        std::ifstream priceFile("data.txt");
+        if (priceFile.is_open())
+        {
+            std::string line;
+            while (std::getline(priceFile, line))
+            {
+                std::istringstream iss(line);
+                std::string tickerSaved;
+                std::string priceSavedStr;
+                if (iss >> tickerSaved >> priceSavedStr)
+                {
+                    if (tickerSaved == ticker)
+                    {
+                        priceStr = priceSavedStr;
+                        priceFound = true;
+                        break;
+                    }
+                }
+            }
+            priceFile.close();
+        }
+        else
+        {
+            wxMessageBox("Unable to read stock prices from file.", "Error", wxOK | wxICON_ERROR);
+        }
+
+        // If the price is not found, retrieve it using the Python script
+        if (!priceFound)
+        {
+            // Call the Python script to retrieve stock price
+            wxString pythonCommand = "python -c \"import yfinance; ticker = '" + ticker
+                + "'; data = yfinance.Ticker(ticker).history(period='1d');"
+                " price = data['Close'].values[-1]; print(price)\"";
+
+            wxArrayString output;
+            wxExecute(pythonCommand, output);
+
+            // Check if the Python command was successful and capture the result
+            wxString result;
+            if (!output.IsEmpty())
+            {
+                result = output[0]; // Assuming the output is stored in the first element of the array
+                double price = wxAtof(result);
+
+                // Update the stock price in the ListView
+
+                basicListView->SetItem(i, 2, wxString::Format("%.2f", price));
+
+
+                // Update the market value column with the most recent stock prices
+                int itemCount = basicListView->GetItemCount();
+                for (int i = 0; i < itemCount; ++i)
+                {
+                    wxString ticker = basicListView->GetItemText(i, 1);
+                    wxString avgPriceStr = basicListView->GetItemText(i, 4);
+                    wxString currentPriceStr = basicListView->GetItemText(i, 2);
+
+                    double avgPrice = wxAtof(avgPriceStr);
+                    double currentPrice = wxAtof(currentPriceStr);
+
+                    // Calculate the profit/loss
+                    double profitLoss = (currentPrice - avgPrice) * wxAtoi(basicListView->GetItemText(i, 5));
+
+                    // Update the "Profit/Loss" column in the ListView
+                    basicListView->SetItem(i, 5, wxString::Format("%.2f", profitLoss));
+                }
+
+                event.Skip();
+            }
+        }
+    }
+
+    event.Skip();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
