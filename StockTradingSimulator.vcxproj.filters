@@ -33,6 +33,7 @@
     <Text Include="stockprices.txt">
       <Filter>Source Files</Filter>
     </Text>
+    <Text Include="temp.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainFrame.h">
