@@ -153,6 +153,7 @@
     <Text Include="data.txt" />
     <Text Include="savedata.txt" />
     <Text Include="stockprices.txt" />
+    <Text Include="temp.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />

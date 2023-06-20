@@ -142,26 +142,14 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 
     stock_quantity = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(730, 220), wxSize(80, 20));
 
-    // Text for Buy Button
-
-    wxStaticText* buy_text = new wxStaticText(panel, wxID_ANY, "Buy", wxPoint(760, 250));
-    wxFont buy_text_font(wxFontInfo(10));
-    buy_text->SetFont(buy_text_font);
-
-    // Text for Sell Button
-
-    wxStaticText* sell_text = new wxStaticText(panel, wxID_ANY, "Sell", wxPoint(760, 300));
-    wxFont sell_text_font(wxFontInfo(10));
-    sell_text->SetFont(sell_text_font);
-
     // Button for Buying Shares
 
-    buy_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 270), wxSize(80, 20));
+    buy_button = new wxButton(panel, wxID_ANY, "Sell", wxPoint(730, 270), wxSize(80, 25));
     buy_button->SetBackgroundColour(*wxLIGHT_GREY);
 
     // Sell button
 
-    sell_button = new wxButton(panel, wxID_ANY, " ", wxPoint(730, 320), wxSize(80, 20));
+    sell_button = new wxButton(panel, wxID_ANY, "Buy", wxPoint(730, 320), wxSize(80, 25));
     sell_button->SetBackgroundColour(*wxLIGHT_GREY);
 
     // Text for Funds Available
@@ -565,14 +553,19 @@ void MainFrame::OnUpdateButton(wxCommandEvent& event)
                 for (int i = 0; i < itemCount; ++i)
                 {
                     wxString ticker = basicListView->GetItemText(i, 1);
-                    wxString avgPriceStr = basicListView->GetItemText(i, 4);
+                    wxString avgPriceStr = basicListView->GetItemText(i, 3);
                     wxString currentPriceStr = basicListView->GetItemText(i, 2);
+                    wxString quantityStr = basicListView->GetItemText(i, 4);
 
                     double avgPrice = wxAtof(avgPriceStr);
                     double currentPrice = wxAtof(currentPriceStr);
+                    int quantity = wxAtoi(quantityStr);
+
+                    // Calculate the market value
+                    double marketValue = currentPrice * quantity;
 
                     // Calculate the profit/loss
-                    double profitLoss = (currentPrice - avgPrice) * wxAtoi(basicListView->GetItemText(i, 5));
+                    double profitLoss = marketValue - avgPrice;
 
                     // Update the "Profit/Loss" column in the ListView
                     basicListView->SetItem(i, 5, wxString::Format("%.2f", profitLoss));
@@ -580,10 +573,8 @@ void MainFrame::OnUpdateButton(wxCommandEvent& event)
                     // Add the profit/loss value to the total
                     totalProfitLoss += profitLoss;
 
-
-                    // Update the profit_loss text with the sum of the "avg p and l" column
+                    // Update the profit_loss text with the sum of the "Profit/Loss" column
                     profit_loss->SetLabel(wxString::Format("%.2f", totalProfitLoss));
-
 
                 }
                 // Get the current portfolio balance
