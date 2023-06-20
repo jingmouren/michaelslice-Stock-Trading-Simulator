@@ -561,19 +561,19 @@ void MainFrame::OnUpdateButton(wxCommandEvent& event)
                     double currentPrice = wxAtof(currentPriceStr);
                     int quantity = wxAtoi(quantityStr);
 
-                    // Calculate the market value
+                   
                     double marketValue = currentPrice * quantity;
 
                     // Calculate the profit/loss
                     double profitLoss = marketValue - avgPrice;
 
-                    // Update the "Profit/Loss" column in the ListView
+                   
                     basicListView->SetItem(i, 5, wxString::Format("%.2f", profitLoss));
 
                     // Add the profit/loss value to the total
                     totalProfitLoss += profitLoss;
 
-                    // Update the profit_loss text with the sum of the "Profit/Loss" column
+                   
                     profit_loss->SetLabel(wxString::Format("%.2f", totalProfitLoss));
 
                 }

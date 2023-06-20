@@ -1,9 +1,8 @@
+
 import numpy as np
 import yfinance as yf
 import datetime as dt
 from pandas_datareader import data as pdr
-
-import yfinance as yf
 
 # Read stock names from text file
 with open('data.txt', 'r') as file:
@@ -23,3 +22,4 @@ with open('stockprices.txt', 'r+') as file:
         file.write(updated_line)
 
     file.truncate()  # Remove any remaining lines from the previous version of the file
+    
