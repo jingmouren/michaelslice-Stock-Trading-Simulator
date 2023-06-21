@@ -32,3 +32,6 @@ To purchase shares click in the 'Ticker' input frame and enter a ticker symbol, 
 
 ## Updates
 
+By pressing the 'Update' Button in the bottom right corner the watchlist and investing performance will be be updated to show the change in prices.
+
+![image](https://github.com/michaelslice/Stock-Trading-Simulator/assets/110714088/c1a4348c-4fe9-4192-837c-f58317b2ce53)
